@@ -1,6 +1,8 @@
 package nl.dcsolutions.authserver.domain;
 
 import jakarta.persistence.*;
+import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
+import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 
 import java.time.Instant;
 import java.util.HashSet;
@@ -33,7 +35,18 @@ public class Client {
     @OneToMany(mappedBy = "registeredClient", fetch = FetchType.EAGER,cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Scope> scopes = new HashSet<>();
 
+    @OneToMany(mappedBy = "client", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private Set<User> users = new HashSet<>();
+
+    @OneToMany(mappedBy = "client", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private Set<Role> roles = new HashSet<>();
+
+    @Lob
+    @Column(columnDefinition = "TEXT")
     private String clientSettings;
+
+    @Lob
+    @Column(columnDefinition = "TEXT")
     private String tokenSettings;
 
     public String getId() {

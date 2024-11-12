@@ -1,19 +1,59 @@
+### register client
+## PT1H 1 hour in ISO-8601 duration format
+## P30D 30 days in ISO-8601 duration format
 POST http://localhost:9000/oauth2/register
-Authorization: Bearer {{$auth.token("auth-id")}}
+Authorization: Bearer {{$auth.token("auth-registrar")}}
 content-type: application/json
 
 {
-    "clientId": "example-client",
-    "clientSecret": "example-secret",
-    "clientName": "Example Client",
-    "authorizationGrantTypes": ["client_credentials","authorization_code","refresh_token"],
-    "redirectUris": ["http://localhost:8080/login/oauth2/code/example-client"],
-    "scopes": ["openid","profile"]
+  "clientId": "example-client",
+  "clientSecret": "example-secret",
+  "clientName": "Example Client",
+  "authorizationGrantTypes": [
+    "client_credentials",
+    "authorization_code",
+    "refresh_token",
+    "password"
+  ],
+  "redirectUris": [
+    "http://localhost:8080/login/oauth2/code/example-client"
+  ],
+  "scopes": [
+    "user:manage"
+  ],
+  "tokenSettings": {
+    "accessTokenTimeToLive": "PT1H",
+    "refreshTokenTimeToLive": "P30D"
+  }
 }
 
-### Request Access Token with Client Credentials Flow
+### Save user
+POST http://localhost:9000/api/users
+Authorization: Bearer {{$auth.token("auth-example-client")}}
+content-type: application/json
+
+{
+  "username": "teundeclercq",
+  "password": "password!23"
+}
+
+###
+POST http://localhost:9000/oauth2/token
+Authorization: Bearer {{$auth.token("auth-example-client")}}
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=authorization_code
+username=teundeclercq
+password=password!23
+scope=user:manage
+
+
+###
 POST http://localhost:9000/oauth2/token
 Content-Type: application/x-www-form-urlencoded
-Authorization:
 
-grant_type=client_credentials
+grant_type=authorization_code
+    &client_id=example-client
+    &client_secret=example-secret
+    &redirect_uri=http://localhost:8080/login/oauth2/code/example-client
+    &code=AUTHORIZATION_CODE

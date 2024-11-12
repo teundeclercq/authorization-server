@@ -1,16 +1,27 @@
 package nl.dcsolutions.authserver.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.Module;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import nl.dcsolutions.authserver.domain.*;
 import nl.dcsolutions.authserver.repository.RegisteredClientEntityRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.jackson2.SecurityJackson2Modules;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
+import org.springframework.security.oauth2.server.authorization.jackson2.OAuth2AuthorizationServerJackson2Module;
+import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
+import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -20,11 +31,17 @@ public class JpaRegisteredClientRepository implements RegisteredClientRepository
     private final PasswordEncoder passwordEncoder;
     private final String client;
     private final String secret;
-    public JpaRegisteredClientRepository(@Value("${REGISTRAR_CLIENT}") String client, @Value("${REGISTRAR_SECRET}") String secret, RegisteredClientEntityRepository repository, PasswordEncoder passwordEncoder) {
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    public JpaRegisteredClientRepository(@Value("${REGISTRAR_CLIENT}") String client, @Value("${REGISTRAR_SECRET}") String secret, RegisteredClientEntityRepository repository, PasswordEncoder passwordEncoder, ObjectMapper objectMapper) {
         this.client = client;
         this.secret = secret;
         this.repository = repository;
         this.passwordEncoder = passwordEncoder;
+        ClassLoader classLoader = JpaRegisteredClientRepository.class.getClassLoader();
+        List<Module> securityModules = SecurityJackson2Modules.getModules(classLoader);
+        this.objectMapper.registerModules(securityModules);
+        this.objectMapper.registerModule(new OAuth2AuthorizationServerJackson2Module());
         initializeClientRegistrar();
     }
 
@@ -71,6 +88,15 @@ public class JpaRegisteredClientRepository implements RegisteredClientRepository
             scopeEntity.setRegisteredClient(entity);
             entity.getScopes().add(scopeEntity);
         });
+
+        // Store ClientSettings and TokenSettings as JSON
+        if (registeredClient.getClientSettings() != null) {
+            entity.setClientSettings(writeMap(registeredClient.getClientSettings().getSettings()));
+        }
+        if (registeredClient.getTokenSettings() != null) {
+            entity.setTokenSettings(writeMap(registeredClient.getTokenSettings().getSettings()));
+        }
+
         // Map other fields as needed
         repository.save(entity);
     }
@@ -96,6 +122,11 @@ public class JpaRegisteredClientRepository implements RegisteredClientRepository
                     .authorizationGrantType(org.springframework.security.oauth2.core.AuthorizationGrantType.AUTHORIZATION_CODE)
                     .authorizationGrantType(org.springframework.security.oauth2.core.AuthorizationGrantType.CLIENT_CREDENTIALS)
                     .redirectUri("http://localhost:8080/registered")
+                    .clientSettings(ClientSettings.builder()
+                            .requireAuthorizationConsent(false)
+                            .build())
+                    .tokenSettings(TokenSettings.builder()
+                            .accessTokenTimeToLive(Duration.ofDays(1)).build())
                     .scope("client:register")  // Scope to allow registration of other clients
                     .build();
 
@@ -104,7 +135,7 @@ public class JpaRegisteredClientRepository implements RegisteredClientRepository
     }
 
     private RegisteredClient convertToRegisteredClient(Client entity) {
-        return RegisteredClient.withId(entity.getId())
+        RegisteredClient.Builder builder = RegisteredClient.withId(entity.getId())
                 .clientId(entity.getClientId())
                 .clientIdIssuedAt(entity.getClientIdIssuedAt())
                 .clientSecret(entity.getClientSecret())
@@ -129,9 +160,31 @@ public class JpaRegisteredClientRepository implements RegisteredClientRepository
                         entity.getScopes().stream()
                                 .map(Scope::getScope)
                                 .forEach(scopes::add)
-                )
-//                .clientSettings(ClientSettings.withSettings(enitty).build())
-//                .tokenSettings(TokenSettings.withSettings(parseJson(entity.getTokenSettings(), TokenSettings.class)).build())
-                .build();
+                );
+
+        Map<String, Object> clientSettingsMap = parseMap(entity.getClientSettings());
+        builder.clientSettings(ClientSettings.withSettings(clientSettingsMap).build());
+
+        Map<String, Object> tokenSettingsMap = parseMap(entity.getTokenSettings());
+        builder.tokenSettings(TokenSettings.withSettings(tokenSettingsMap).build());
+
+        return builder.build();
+    }
+
+    private Map<String, Object> parseMap(String data) {
+        try {
+            return this.objectMapper.readValue(data, new TypeReference<Map<String, Object>>() {
+            });
+        } catch (Exception ex) {
+            throw new IllegalArgumentException(ex.getMessage(), ex);
+        }
+    }
+
+    private String writeMap(Map<String, Object> data) {
+        try {
+            return this.objectMapper.writeValueAsString(data);
+        } catch (Exception ex) {
+            throw new IllegalArgumentException(ex.getMessage(), ex);
+        }
     }
 }
