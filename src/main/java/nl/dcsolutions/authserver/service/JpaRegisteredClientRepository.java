@@ -1,6 +1,5 @@
 package nl.dcsolutions.authserver.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import nl.dcsolutions.authserver.domain.*;
 import nl.dcsolutions.authserver.repository.RegisteredClientEntityRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -87,7 +86,7 @@ public class JpaRegisteredClientRepository implements RegisteredClientRepository
     }
 
 
-    private void initializeClientRegistrar() {
+    void initializeClientRegistrar() {
         if (repository.findByClientId("client-registrar").isEmpty()) {
             RegisteredClient clientRegistrar = RegisteredClient.withId(UUID.randomUUID().toString())
                     .clientId(this.client)
@@ -134,13 +133,5 @@ public class JpaRegisteredClientRepository implements RegisteredClientRepository
 //                .clientSettings(ClientSettings.withSettings(enitty).build())
 //                .tokenSettings(TokenSettings.withSettings(parseJson(entity.getTokenSettings(), TokenSettings.class)).build())
                 .build();
-    }
-    private static final ObjectMapper objectMapper = new ObjectMapper();
-    private <T> T parseJson(String json, Class<T> clazz) {
-        try {
-            return objectMapper.readValue(json, clazz);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to deserialize JSON to " + clazz.getSimpleName(), e);
-        }
     }
 }
