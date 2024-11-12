@@ -1,0 +1,19 @@
+POST http://localhost:9000/oauth2/register
+Authorization: Bearer {{$auth.token("auth-id")}}
+content-type: application/json
+
+{
+    "clientId": "example-client",
+    "clientSecret": "example-secret",
+    "clientName": "Example Client",
+    "authorizationGrantTypes": ["client_credentials","authorization_code","refresh_token"],
+    "redirectUris": ["http://localhost:8080/login/oauth2/code/example-client"],
+    "scopes": ["openid","profile"]
+}
+
+### Request Access Token with Client Credentials Flow
+POST http://localhost:9000/oauth2/token
+Content-Type: application/x-www-form-urlencoded
+Authorization:
+
+grant_type=client_credentials
