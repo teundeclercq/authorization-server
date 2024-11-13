@@ -6,21 +6,25 @@ Authorization: Bearer {{$auth.token("auth-registrar")}}
 content-type: application/json
 
 {
-  "clientId": "example-client",
-  "clientSecret": "example-secret",
-  "clientName": "Example Client",
+  "clientId": "spa-client",
+  "clientSecret": "spa-secret",
+  "clientName": "Spa Client",
   "authorizationGrantTypes": [
-    "client_credentials",
-    "authorization_code",
-    "refresh_token",
-    "password"
+    "authorization_code"
+  ],
+  "authenticationMethods": [
+    "none"
   ],
   "redirectUris": [
-    "http://localhost:8080/login/oauth2/code/example-client"
+    "http://localhost:4200/callback"
   ],
   "scopes": [
-    "user:manage"
+    "openid"
   ],
+  "clientSettings": {
+    "requireAuthorizationConsent": true,
+    "requireProofKey": true
+  },
   "tokenSettings": {
     "accessTokenTimeToLive": "PT1H",
     "refreshTokenTimeToLive": "P30D"
@@ -34,7 +38,12 @@ content-type: application/json
 
 {
   "username": "teundeclercq",
-  "password": "password!23"
+  "password": "password!23",
+  "roles": [
+    {
+      "name": "create"
+    }
+  ]
 }
 
 ###
@@ -43,9 +52,9 @@ Authorization: Bearer {{$auth.token("auth-example-client")}}
 Content-Type: application/x-www-form-urlencoded
 
 grant_type=authorization_code
-username=teundeclercq
-password=password!23
-scope=user:manage
+    &username=teundeclercq
+    &password=password!23
+    &scope=user:manage
 
 
 ###
@@ -57,3 +66,15 @@ grant_type=authorization_code
     &client_secret=example-secret
     &redirect_uri=http://localhost:8080/login/oauth2/code/example-client
     &code=AUTHORIZATION_CODE
+
+
+### 3. Obtain Authorization Code (Authorization Code with PKCE)
+GET http://localhost:9000/oauth2/authorize
+Content-Type: application/x-www-form-urlencoded
+
+client_id=example-client
+    &redirect_uri=http://localhost:8080/login/oauth2/code/example-client
+    &response_type=code
+    &scope=user:manage
+    &code_challenge=12354     # Replace with your generated code_challenge
+    &code_challenge_method=S256

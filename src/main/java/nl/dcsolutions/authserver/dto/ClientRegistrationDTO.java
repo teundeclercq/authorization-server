@@ -8,6 +8,7 @@ public class ClientRegistrationDTO {
     private String clientSecret;
     private String clientName;
     private List<String> authorizationGrantTypes;
+    private List<String> authenticationMethods;
     private List<String> redirectUris;
     private Set<String> scopes;
     private ClientSettingsDTO clientSettings;
@@ -75,5 +76,13 @@ public class ClientRegistrationDTO {
 
     public void setTokenSettings(TokenSettingsDTO tokenSettings) {
         this.tokenSettings = tokenSettings;
+    }
+
+    public List<String> getAuthenticationMethods() {
+        return authenticationMethods;
+    }
+
+    public void setAuthenticationMethods(List<String> authenticationMethods) {
+        this.authenticationMethods = authenticationMethods;
     }
 }

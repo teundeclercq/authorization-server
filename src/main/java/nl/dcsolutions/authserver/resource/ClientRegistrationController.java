@@ -6,6 +6,7 @@ import nl.dcsolutions.authserver.dto.TokenSettingsDTO;
 import nl.dcsolutions.authserver.service.JpaRegisteredClientRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
@@ -37,6 +38,8 @@ public class ClientRegistrationController {
                 .clientId(dto.getClientId())
                 .clientSecret(dto.getClientSecret())
                 .clientName(dto.getClientName())
+                .clientAuthenticationMethods(clientAuthenticationMethods -> dto.getAuthenticationMethods()
+                        .forEach(clientAuthenticationMethod -> clientAuthenticationMethods.add(new ClientAuthenticationMethod(clientAuthenticationMethod))))
                 .authorizationGrantTypes(grantTypes -> dto.getAuthorizationGrantTypes()
                         .forEach(grantType -> grantTypes.add(new AuthorizationGrantType(grantType))))
                 .redirectUris(redirectUris -> redirectUris.addAll(dto.getRedirectUris()))
